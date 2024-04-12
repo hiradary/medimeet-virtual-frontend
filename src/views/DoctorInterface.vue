@@ -1,134 +1,176 @@
 <template>
-  <div class="container mt-5">
-    <!-- Appointment List -->
-    <div class="card">
-      <div class="card-header">
-        <h2>Appointment List</h2>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Doctor</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Loop through appointments -->
-            <tr v-for="appointment in appointments" :key="appointment.id">
-              <td>{{ appointment.doctor }}</td>
-              <td>{{ appointment.date }}</td>
-              <td>{{ appointment.time }}</td>
-              <td>{{ appointment.status }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div>
+    <h1>Doctor Interface</h1>
 
-    <!-- Appointment Form -->
-    <div class="card mt-3">
-      <div class="card-header">
-        <h2>Create Appointment</h2>
-      </div>
-      <div class="card-body">
-        <form @submit.prevent="createAppointment">
-          <div class="mb-3">
-            <label for="doctor" class="form-label">Doctor:</label>
-            <select v-model="form.doctor" class="form-select" required>
-              <option value="" disabled>Select Doctor</option>
-              <option v-for="doctor in doctors" :key="doctor.id" :value="doctor.id">{{ doctor.name }}</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="date" class="form-label">Date:</label>
-            <input type="date" v-model="form.date" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="time" class="form-label">Time:</label>
-            <input type="time" v-model="form.time" class="form-control" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Create Appointment</button>
-        </form>
+    <div class="container">
+      <h2>Appointments</h2>
+      <table v-if="appointments.length > 0" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Patient</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Date</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Time</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Status</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Actions</th> <!-- Add Actions column -->
+
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="appointment in appointments" :key="appointment.appointmentId" style="border: 1px solid #dddddd;">
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{appointment.patient ? appointment.patient.name : ''  }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.appointmentDate }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.appointmentTime }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.status }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">
+              <button @click="goToAppointmentDetails(appointment.appointmentId)">Details</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else>No appointments available.</p>
+      <!-- Create New Appointment Form -->
+      <div class="card">
+        <!-- Form content -->
+        <div class="card-body">
+          <h2>New Appointment</h2>
+          <form @submit.prevent="submitAppointment">
+            <div class="form-group">
+              <label for="patient">Patient:</label>
+              <select v-model="selectedPatient" id="patient" class="form-control">
+                <option v-for="user in users" :key="user.userId" :value="user.userId">{{ user.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="date">Date:</label>
+              <input type="date" v-model="date" id="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="time">Time:</label>
+              <input type="time" v-model="time" id="time" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Appointment</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import appointmentService from '../services/AppiointmentService';
+
+
 export default {
   data() {
     return {
-      appointments: [], // Placeholder for appointments data
-      doctors: [], // Placeholder for doctors data
-      form: {
-        doctor: '',
-        date: '',
-        time: ''
-      }
+      appointments: [],
+      users: [],
+      selectedPatient: '',
+      date: '',
+      time: ''
     };
-  },
-  methods: {
-    createAppointment() {
-      // Implement appointment creation logic
-    },
-    fetchAppointments() {
-      // Implement logic to fetch appointments from backend
-    },
-    fetchDoctors() {
-      // Implement logic to fetch doctors from backend
-    }
   },
   mounted() {
     this.fetchAppointments();
-    this.fetchDoctors();
+    this.fetchUsers();
+  },
+  methods: {
+    goToAppointmentDetails(appointmentId) {
+    console.log('Id:', appointmentId);
+    this.$router.push({ name: 'AppointmentDetails', params: { id: appointmentId } });
+  },
+    async fetchAppointments() {
+      try {
+        const response = await appointmentService.getAll();
+        if (Array.isArray(response.data)) {
+          this.appointments = response.data;
+        } else {
+          console.error('Invalid response format for appointments:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
+    },
+    async fetchUsers() {
+      try {
+        const response = await appointmentService.getAllUsers();
+        if (Array.isArray(response.data)) {
+          this.users = response.data;
+        } else {
+          console.error('Invalid response format for users:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    },
+    async submitAppointment() {
+      try {
+        // Find the selected patient object based on the selectedPatient ID
+        const selectedPatient = this.users.find(user => user.userId === this.selectedPatient);
+        
+        // Send the whole User object in the appointment creation request
+        const response = await appointmentService.create({
+          patient: selectedPatient, // Send the entire user object
+          appointmentDate: this.date,
+          appointmentTime: this.time,
+          status: 'Scheduled' // Default status for new appointments
+        });
+
+        console.log('New appointment created:', response.data);
+
+        // Clear form fields
+        this.selectedPatient = '';
+        this.date = '';
+        this.time = '';
+
+        // Refresh appointments after creating a new one
+        this.fetchAppointments();
+      } catch (error) {
+        console.error('Error creating appointment:', error);
+      }
+    }
   }
 };
 </script>
 
 <style scoped>
-.container {
-  max-width: 800px;
-  margin: auto;
+.new-appointment {
+  margin: 20px auto;
+  width: 80%;
+  max-width: 600px;
 }
 
-.card {
+.appointment-form {
   border: 1px solid #ccc;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-.card-header {
-  background-color: #f0f0f0;
-  padding: 10px;
-  border-bottom: 1px solid #ccc;
-}
-
-.card-body {
   padding: 20px;
+  border-radius: 5px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  font-weight: bold;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 
 .btn-primary {
   background-color: #007bff;
   color: #fff;
   border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .btn-primary:hover {
   background-color: #0056b3;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  border: 1px solid #dee2e6;
-  padding: 8px;
-  text-align: left;
 }
 </style>
