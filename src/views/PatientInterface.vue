@@ -1,94 +1,169 @@
 <template>
-  <NavBar />
-  <div class="container">
-    <div class="row">
-      <div class="col-md-12">
+  <div>
+    <h1>User Interface</h1>
 
-        <h1 class="text-center">Patient List</h1>
-        <a class="btn btn-primary btn-block" href="/registration">Add Patient</a>
-        <br>
-
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">ID</th>
-              <th scope="col">Age</th>
-              <th scope="col">Gender</th>
-              <th scope="col">Phone</th>
-              <th scope="col">Status</th>
-              <th scope="col">Prescription</th>
-              <th scope="col">Bio</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr v-for="patient in patients" :key="patient.id">
-              <td>{{ patient.name }}</td>
-              <td>{{ patient.email }}</td>
-              <td>{{ patient.id }}</td>
-              <td>{{ patient.age }}</td>
-              <td>{{ patient.gender }}</td>
-              <td>
-                <a class="btn btn-primary" href="/edit/{{ patient.id }}">Edit</a>
-                <button class="btn btn-danger" @click="deletePatient(patient.id)">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-
-        </table>
-
-      </div>  
+    <div class="container">
+      <h2>Appointments</h2>
+      <table v-if="appointments.length > 0" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Doctor</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Date</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Time</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Status</th>
+            <th style="padding: 8px; border: 1px solid #dddddd; text-align: left;">Actions</th> <!-- Add Actions column -->
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="appointment in appointments" :key="appointment.appointmentId" style="border: 1px solid #dddddd;">
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{appointment.doctor ? appointment.doctor.name : ''  }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.appointmentDate }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.appointmentTime }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">{{ appointment.status }}</td>
+            <td style="padding: 8px; border: 1px solid #dddddd;">
+              <button @click="goToAppointmentDetails(appointment.appointmentId)">Details</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else>No appointments available.</p>
+      <!-- Create New Appointment Form -->
+      <div class="card">
+        <!-- Form content -->
+        <div class="card-body">
+          <h2>New Appointment</h2>
+          <form @submit.prevent="submitAppointment">
+            <div class="form-group">
+              <label for="doctor">Doctor:</label>
+              <select v-model="selectedDoctor" id="doctor" class="form-control">
+                <option v-for="doctor in doctors" :key="doctor.doctorId" :value="doctor.doctorId">{{ doctor.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="date">Date:</label>
+              <input type="date" v-model="date" id="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="time">Time:</label>
+              <input type="time" v-model="time" id="time" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Appointment</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import NavBar from '@/components/NavBar.vue'
+import appointmentService from '../services/AppiointmentService';
+
 export default {
-  name: 'PatientInterface',
-  components: {
-      NavBar,
-      
-  }, 
-  data(){
+  data() {
     return {
-      patients: []
-    }
-  },
-  method : {
-    getPatienst(){
-      fetch("http://localhost:8080/patients")
-      .then(res => res.json())
-      .then(data => {
-          this.patients = data
-          console.log(data) })
-      .catch(err => console.log(err.message))
-    },
-    deletePatient(id){
-      fetch(`http://localhost:8080/patients/${id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(res => res.json())
-      .then(data => console.log(data))
-      .catch(err => console.log(err.message)) 
-    }
+      appointments: [],
+      doctors: [],
+      selectedDoctor: '',
+      date: '',
+      time: ''
+    };
   },
   mounted() {
+    this.fetchAppointments();
+    this.fetchDoctors();
+  },
+  methods: {
+    goToAppointmentDetails(appointmentId) {
+      this.$router.push({ name: 'AppointmentDetails', params: { id: appointmentId } });
+    },
+    async fetchAppointments() {
+      try {
+        const response = await appointmentService.getAll();
+        if (Array.isArray(response.data)) {
+          this.appointments = response.data;
+        } else {
+          console.error('Invalid response format for appointments:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
+    },
+    async fetchDoctors() {
+      try {
+        const response = await appointmentService.getAllDoctors();
+        if (Array.isArray(response.data)) {
+          this.doctors = response.data;
+        } else {
+          console.error('Invalid response format for doctors:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+      }
+    },
+    async submitAppointment() {
+      try {
+        const selectedDoctor = this.doctors.find(doctor => doctor.doctorId === this.selectedDoctor);
+        
+        const response = await appointmentService.create({
+          doctor: selectedDoctor,
+          appointmentDate: this.date,
+          appointmentTime: this.time,
+          status: 'Scheduled'
+        });
 
+        console.log('New appointment created:', response.data);
+
+        this.selectedDoctor = '';
+        this.date = '';
+        this.time = '';
+
+        this.fetchAppointments();
+      } catch (error) {
+        console.error('Error creating appointment:', error);
+      }
+    }
   }
-}
+};
 </script>
 
-<style>
-#user {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+<style scoped>
+.new-appointment {
+  margin: 20px auto;
+  width: 80%;
+  max-width: 600px;
+}
+
+.appointment-form {
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  font-weight: bold;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
 }
 </style>

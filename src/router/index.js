@@ -1,13 +1,12 @@
-import {createRouter, createWebHistory} from 'vue-router'
-import PatientInterface from '@/views/PatientInterface.vue'
+import { createRouter, createWebHistory } from 'vue-router';
 
 const router = createRouter({
-    history: createWebHistory(process.env.BASE_URL), 
+    history: createWebHistory(process.env.BASE_URL),
     routes: [
         {
             path: '/home',
             name: '/home',
-            component: PatientInterface
+            component: () => import('../views/PatientInterface.vue')
         },
         {
             path: '/',
@@ -32,14 +31,14 @@ const router = createRouter({
         {
             path: '/patient',
             name: 'patient',
-            component: () => import('../components/UserInfo.vue')
+            component: () => import('../views/PatientInterface.vue') // Update to point to PatientInterface.vue
         },
-          {
+        {
             path: '/AppointmentDetails/:id',
             name: 'AppointmentDetails',
             component: () => import('../views/AppointDetails.vue')
-          }
+        }
     ]
-})
+});
 
-export default router
+export default router;

@@ -37,7 +37,7 @@ export default {
         // Simulating a successful login for user
         this.errorMessage = '';
         localStorage.setItem('user', JSON.stringify({ userId: 1, userType: 'user' }));
-        this.$router.push({ name: 'home' }); // Redirect to PatientInterface
+        this.$router.push({ name: 'patient' }); // Redirect to PatientInterface
       } else if (this.username === 'doctor' && this.password === 'password') {
         // Simulating a successful login for doctor
         this.errorMessage = '';
